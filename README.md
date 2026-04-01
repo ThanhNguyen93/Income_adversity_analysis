@@ -28,7 +28,7 @@ income_adversity/
 │
 ├── README.md                        ← this file
 │
-├── stage_1_sql/
+├── stage_1_sql/ (need update)
 │   ├── README_stage1.md
 │   ├── 01_staging/
 │   │   ├── stg_income_brackets.sql
@@ -122,24 +122,8 @@ mart_national_summary         ← rolled-up KPIs by income bracket
 | `uninsured_rate_pct` | % of working-age pop without insurance |
 | `adversity_score` | Weighted composite index (0–100) |
 
-### How to run
-
-```sql
--- Step 1: Get the listing
--- Snowflake UI → Marketplace → search "SafeGraph Open Census" → Get (free)
-
--- Step 2: Run staging views (order matters)
--- Execute files in stage_1_sql/01_staging/ in any order
-
--- Step 3: Run marts
--- Execute files in stage_1_sql/02_marts/ in order:
---   mart_income_adversity.sql first (others depend on it)
-
--- Step 4: Validate
--- Execute stage_1_sql/03_validation/qa_checks.sql
--- All checks should return 0 rows
-```
-
+### Report: 
+- Please read stage 1 findings here: https://thanhnguyen93.github.io/Income_adversity_analysis/stage1_SQL.model/Report_Stage1.html
 ---
 
 ## Stage 2 — Binary Classification Model
