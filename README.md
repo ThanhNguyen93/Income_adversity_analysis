@@ -16,8 +16,7 @@ This project is structured in three sequential stages:
 | Stage | Name | Output |
 |-------|------|--------|
 | 1 | SQL Data Model | Snowflake views + mart tables |
-| 2 | Classification Model | Binary risk classifier (high / low adversity) |
-| 3 | Interactive Dashboard | Dash app with national and CBG-level visuals |
+
 
 ---
 
@@ -42,36 +41,6 @@ income_adversity/
 │   │   └── mart_national_summary.sql
 │   └── 03_validation/
 │       └── qa_checks.sql
-│
-├── stage_2_model/
-│   ├── README_stage2.md
-│   ├── notebooks/
-│   │   ├── 01_eda.ipynb
-│   │   ├── 02_feature_engineering.ipynb
-│   │   ├── 03_train_classifier.ipynb
-│   │   └── 04_evaluate_explain.ipynb
-│   ├── src/
-│   │   ├── extract.py               ← Snowflake → DataFrame
-│   │   ├── features.py              ← feature engineering pipeline
-│   │   ├── train.py                 ← model training + cross-validation
-│   │   └── evaluate.py              ← SHAP, confusion matrix, metrics
-│   └── models/
-│       └── rf_binary_classifier.joblib   ← saved model (generated)
-│
-├── stage_3_dashboard/
-│   ├── README_stage3.md
-│   ├── app.py                       ← Dash entry point
-│   ├── pages/
-│   │   ├── overview.py              ← national KPI cards
-│   │   ├── income_explorer.py       ← adversity by income tier charts
-│   │   ├── risk_map.py              ← choropleth map by county
-│   │   └── model_insights.py        ← classifier results + SHAP
-│   ├── components/
-│   │   ├── kpi_card.py
-│   │   ├── bar_chart.py
-│   │   └── scatter_plot.py
-│   └── assets/
-│       └── style.css
 │
 ├── data/
 │   └── sample_export.csv            ← optional local dev sample
@@ -125,118 +94,6 @@ mart_national_summary         ← rolled-up KPIs by income bracket
 ### Report: 
 - Please read stage 1 findings here: https://thanhnguyen93.github.io/Income_adversity_analysis/stage1_SQL.model/Report_Stage1.html
 ---
-
-## Stage 2 — Binary Classification Model
-
-### Goal
-Train a binary classifier that labels each Census Block Group as **high adversity** or **low adversity**, based on its income profile, then explain which income-related features drive the prediction.
-
-### Target Variable Definition
-
-```
-HIGH ADVERSITY (1) = CBG where adversity_score >= 50
-LOW ADVERSITY  (0) = CBG where adversity_score <  50
-
-adversity_score is a weighted composite of:
-  - unemployment_rate_pct   (weight 0.33)
-  - rent_burden_rate_pct    (weight 0.33)
-  - uninsured_rate_pct      (weight 0.34)
-```
-
-### Feature Set
-
-| Feature | Source | Type |
-|---------|--------|------|
-| `log_median_income` | B19 | Continuous |
-| `gini_index` | B19 | Continuous |
-| `pct_under_25k` | B19 | Continuous |
-| `pct_25k_to_50k` | B19 | Continuous |
-| `pct_over_100k` | B19 | Continuous |
-| `unemployment_rate_pct` | B23 | Continuous |
-| `rent_burden_rate_pct` | B25 | Continuous |
-| `uninsured_rate_pct` | B27 | Continuous |
-| `state` (encoded) | FIPS | Categorical |
-
-### Model Pipeline
-
-```
-Raw mart data
-     ↓
-Feature engineering   (log transforms, ratio features, state dummies)
-     ↓
-Train/test split      (80/20, stratified on target)
-     ↓
-Class balancing       (SMOTE or class_weight='balanced')
-     ↓
-Random Forest         (primary) + Logistic Regression (baseline)
-     ↓
-Cross-validation      (5-fold, scoring: ROC-AUC, F1)
-     ↓
-SHAP explainability   (feature importance per prediction)
-     ↓
-Save model            (joblib → models/rf_binary_classifier.joblib)
-```
-
-### Expected metrics (rough targets)
-
-| Metric | Target |
-|--------|--------|
-| ROC-AUC | > 0.82 |
-| F1 (macro) | > 0.75 |
-| Precision (high risk) | > 0.78 |
-| Recall (high risk) | > 0.72 |
-
-### How to run
-
-```bash
-# Install dependencies
-pip install -r requirements.txt
-
-# Run in order (or use notebooks for step-by-step)
-python stage_2_model/src/extract.py      # pulls from Snowflake → data/
-python stage_2_model/src/features.py     # engineers features → data/features.csv
-python stage_2_model/src/train.py        # trains + saves model
-python stage_2_model/src/evaluate.py     # prints metrics, generates SHAP plot
-```
-
----
-
-## Stage 3 — Interactive Dash Dashboard
-
-### Goal
-A multi-page Dash app that lets users explore how income brackets correlate with adverse outcomes nationally, and inspect the classifier's predictions at the CBG level.
-
-### Pages
-
-#### Page 1 — National overview (`/`)
-- 4 KPI cards: avg unemployment / rent burden / uninsured rate / adversity score
-- Dropdown to filter by income tier
-- Bar chart: adversity score by income tier
-
-#### Page 2 — Income explorer (`/explorer`)
-- Side-by-side bar charts: unemployment, rent burden, uninsured — all by income tier
-- Scatter plot: median income vs adversity score (one dot per state)
-- Table: top 20 most adversely affected counties
-
-#### Page 3 — Risk map (`/map`)
-- Plotly choropleth (county level) colored by adversity score
-- Click a county → drill-down sidebar shows CBG breakdown
-- Filter by state dropdown
-
-#### Page 4 — Model insights (`/model`)
-- Confusion matrix heatmap
-- ROC curve
-- SHAP summary bar chart (global feature importance)
-- Single CBG predictor: input income profile → get risk label + confidence
-
-### How to run
-
-```bash
-# From repo root
-python stage_3_dashboard/app.py
-
-# App runs at http://localhost:8050
-```
 
 ### Environment variables (create a .env file)
 
