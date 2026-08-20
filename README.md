@@ -5,7 +5,7 @@
 > **Data source:** SafeGraph US Open Census Data (Snowflake Marketplace — free listing)
 - Data link: https://app.snowflake.com/marketplace/listing/GZSNZ2UNN0/safegraph-us-open-census-data-neighborhood-insights-free-dataset?search=housing&pricing=free
 
-> **Stack:** Snowflake · Python · scikit-learn · Dash
+> **Stack:** Snowflake · Python · scikit-learn 
 
 ---
 
